@@ -65,7 +65,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 	array_push($data, $row);
 }
 // Added the secondary query for the selectbox
-$locationQuery = $conn->prepare("SELECT * FROM `location`");
+$locationQuery = $conn->prepare("SELECT id, name FROM `location`");
 $locationQuery->execute();
 $locationResult = $locationQuery->get_result();
 $locationData = [];

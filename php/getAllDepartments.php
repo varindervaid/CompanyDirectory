@@ -42,7 +42,9 @@ $query = "SELECT
 FROM 
     department
 JOIN 
-    location ON department.locationID = location.ID";
+    location ON department.locationID = location.ID
+ORDER BY 
+    department.name ASC";
 
 $result = $conn->query($query);
 

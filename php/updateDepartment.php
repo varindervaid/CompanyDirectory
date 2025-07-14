@@ -69,7 +69,7 @@ $query->bind_param('sii', $departmentName, $locationID, $departmentID);
 $query->execute();
 
 // Log the update operation for debugging purposes
-file_put_contents("debug_update.txt", "Updating: $departmentName, $locationID, for departmentID: $departmentID");
+@file_put_contents("debug_update.txt", "Updating: $departmentName, $locationID, for departmentID: $departmentID");
 
 // Execute the statement again (Note: This may be redundant and should likely be removed)
 $query->execute();

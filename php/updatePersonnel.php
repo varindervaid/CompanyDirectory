@@ -53,7 +53,7 @@ if (!$query) {
 }
 
 $query->bind_param("sssii", $firstName, $lastName, $email, $departmentID, $id);
-file_put_contents("debug_update.txt", "Updating: $firstName, $lastName, $email, deptID: $departmentID for ID: $id");
+@file_put_contents("debug_update.txt", "Updating: $firstName, $lastName, $email, deptID: $departmentID for ID: $id");
 
 $query->execute();
 

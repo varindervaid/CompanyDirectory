@@ -1,0 +1,106 @@
+/* We didn't have a design reference, so I made changes based on the provided CodePen. */
+/* Reset & Base */
+html,
+body {
+  background-color: #f9f6ee;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+
+/* Main Section Fills Space Between Header/Footer */
+section {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* App Header (inside section) */
+.appHeader {
+  background-color: #f9f6ee;
+  color: white;
+  padding: 10px 20px 0px 20px;
+  z-index: 1000;
+}
+
+/* Ensure buttons and tabs match header styling */
+.appHeader .btn.btn-primary i {
+  color: #fff;
+}
+.appHeader .nav-tabs i,
+.appHeader .nav-tabs span {
+  color: #0d6efd;
+}
+
+.appHeader .btn.btn-primary {
+  background-color: #0062cc;
+  border: none;
+}
+
+.appHeader .nav-tabs {
+  margin-top: 10px;
+  border-bottom: none;
+}
+
+.appHeader .nav-tabs .nav-link {
+  background: transparent;
+  border: 1px solid #f9f6ee;
+  color: white;
+  border-bottom-color: #dee2e6;
+}
+
+.appHeader .nav-tabs .nav-link.active {
+  background-color: #ffffff;
+  border-color: #dee2e6;
+  border-bottom-color: #fff;
+}
+.appHeader .nav-tabs .nav-link.active i,
+.appHeader .nav-tabs .nav-link.active span {
+  color: #000;
+}
+.appHeader .nav-tabs .nav-link:hover {
+  border-color: #dee2e6;
+}
+
+/* Scrollable tab content */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: white;
+  padding: 10px;
+  box-sizing: border-box;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Sticky footer */
+footer {
+  height: 40px;
+  background-color: #f9f6ee;
+  color: #343a40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+/* Uniform button style */
+.myBtn {
+  background-color: var(--bs-primary);
+  color: #fff;
+  text-transform: uppercase;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+.myBtn:hover {
+  background-color: #004b9a; /* Slightly darker */
+}

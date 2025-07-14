@@ -6,7 +6,7 @@ require 'config.php';
 header('Content-Type: application/json');
 
 // Create a new MySQLi connection using config credentials
-$conn = new mysqli($cd_host, $cd_user, $cd_password, $cd_dbname, $cd_port, $cd_socket);
+$conn = new mysqli( $cd_host, $cd_user, $cd_password, $cd_dbname, $cd_port, $cd_socket);
 
 // Get the 'action' parameter from the URL, default to empty string if not set
 $action = $_GET['action'] ?? '';
@@ -15,7 +15,7 @@ try {
     // Handle GET request to retrieve all locations
     if ($action === 'get') {
         // Prepare SQL query to get all location records, ordered by descending ID
-        $query = $conn->prepare("SELECT * FROM `location` ORDER BY id DESC");
+        $query = $conn->prepare("SELECT id, name FROM `location` ORDER BY name ASC");
         $query->execute();
 
         // Get result set from executed query
@@ -23,7 +23,7 @@ try {
 
         // Initialize an empty array to store the data
         $data = [];
-        
+
         // Fetch each row as an associative array and append to $data
         while ($row = $result->fetch_assoc()) {
             $data[] = $row;
@@ -32,7 +32,7 @@ try {
         // Return success response with fetched data
         echo json_encode(['status' => 'success', 'data' => $data]);
 
-    // Handle ADD request to insert a new location
+       // Handle ADD request to insert a new location
     } elseif ($action === 'add') {
         // Get the name parameter from the URL and trim whitespace
         $name = trim($_GET['name'] ?? '');

@@ -1,760 +1,1085 @@
 // main.js
+let currentDeleteId = null;
+let currentDeleteType = null;
+document.addEventListener("DOMContentLoaded", function () {
+  // Track the current tab (default to 'personnel')
+  let currentTab = "personnel";
+  // const modalElement = document.getElementById("confirmDeleteModal");
+  // const modalMessage = document.getElementById("confirmDeleteMessage");
+  // const confirmBtn = document.getElementById("confirmDeleteActionBtn");
+  // const confirmModal = new bootstrap.Modal(modalElement);
+  const modalEl = document.getElementById("confirmDeleteModal");
+  const deleteForm = document.getElementById("deleteConfirmForm");
+  const deleteMessage = document.getElementById("deleteConfirmMessage");
+  const deleteIdInput = document.getElementById("deleteEntryId");
+  const deleteTypeInput = document.getElementById("deleteEntryType");
 
-document.addEventListener('DOMContentLoaded', function () {
+  const confirmModal = new bootstrap.Modal(modalEl);
+  loadPersonnel();
 
-    // Track the current tab (default to 'personnel')
-    let currentTab = 'personnel';
+  // Handle tab switching
+  document.getElementById("personnelBtn").addEventListener("click", () => {
+    currentTab = "personnel";
+    document.getElementById("multiplefiltersBtn").style.display = "block";
+    document.querySelectorAll("#filterForPerson select").forEach((select) => {
+      select.selectedIndex = 0;
+    });
     loadPersonnel();
+  });
 
-    // Handle tab switching
-    document.getElementById('personnelBtn').addEventListener('click', () => {
-        currentTab = 'personnel';
-        document.getElementById('multiplefiltersBtn').style.display = 'block';
-        document.querySelectorAll('#filterForPerson select').forEach(select => {
-            select.selectedIndex = 0;
+  document.getElementById("departmentsBtn").addEventListener("click", () => {
+    currentTab = "departments";
+    document.getElementById("multiplefiltersBtn").style.display = "block";
+    document
+      .querySelectorAll("#filterForDepartment select")
+      .forEach((select) => {
+        select.selectedIndex = 0;
+      });
+    loadDepartments();
+  });
+
+  document.getElementById("locationsBtn").addEventListener("click", () => {
+    currentTab = "locations";
+    document.getElementById("multiplefiltersBtn").style.display = "none";
+    loadLocations();
+  });
+
+  // Refresh current tab
+  document.getElementById("refreshBtn").addEventListener("click", () => {
+    // Clear Search Field
+    document.getElementById("searchInp").value = "";
+    if (currentTab === "personnel") loadPersonnel();
+    else if (currentTab === "departments") loadDepartments();
+    else if (currentTab === "locations") loadLocations();
+  });
+  // Handle Add Button (opens the correct Add Modal based on active tab)
+  document.getElementById("addBtn").addEventListener("click", function () {
+    if (document.getElementById("personnelBtn").classList.contains("active")) {
+      // Clear previous values
+      document.getElementById("addPersonnelFirstName").value = "";
+      document.getElementById("addPersonnelLastName").value = "";
+      document.getElementById("addPersonnelEmail").value = "";
+      // Fetch departments for dropdown
+      fetch("php/getAllDepartments.php")
+        .then((res) => res.json())
+        .then((data) => {
+          const select = document.getElementById("addPersonnelDepartment");
+          select.innerHTML = ""; // Clear previous
+          data.data.forEach((dept) => {
+            const option = document.createElement("option");
+            option.value = dept.id;
+            option.text = dept.name;
+            select.appendChild(option);
+          });
         });
-        loadPersonnel();
-    });
+      // Open modal
+      new bootstrap.Modal(document.getElementById("addPersonnelModal")).show();
+    } else if (
+      document.getElementById("departmentsBtn").classList.contains("active")
+    ) {
+      document.getElementById("addDepartmentName").value = "";
 
-    document.getElementById('departmentsBtn').addEventListener('click', () => {
-        currentTab = 'departments';
-        document.getElementById('multiplefiltersBtn').style.display = 'block';
-        document.querySelectorAll('#filterForDepartment select').forEach(select => {
-            select.selectedIndex = 0;
+      // Load locations for dropdown
+
+      //Action is changed
+      fetch("php/locations.php?action=get")
+        .then((res) => res.json())
+        .then((data) => {
+          const select = document.getElementById("addDepartmentLocation");
+          select.innerHTML = "";
+
+          data.data.forEach((loc) => {
+            const option = document.createElement("option");
+            option.value = loc.id;
+            option.text = loc.name;
+            select.appendChild(option);
+          });
         });
-        loadDepartments();
-    });
 
-    document.getElementById('locationsBtn').addEventListener('click', () => {
-        currentTab = 'locations';
-        document.getElementById('multiplefiltersBtn').style.display = 'none';
-        loadLocations();
-    });
+      new bootstrap.Modal(document.getElementById("addDepartmentModal")).show();
+    } else if (
+      document.getElementById("locationsBtn").classList.contains("active")
+    ) {
+      // Clear previous value
+      document.getElementById("addLocationName").value = "";
+      // Open modal
+      new bootstrap.Modal(document.getElementById("addLocationModal")).show();
+    }
+  });
 
-    // Refresh current tab
-    document.getElementById('refreshBtn').addEventListener('click', () => {
-        if (currentTab === 'personnel') loadPersonnel();
-        else if (currentTab === 'departments') loadDepartments();
-        else if (currentTab === 'locations') loadLocations();
-    });
-    // Handle Add Button (opens the correct Add Modal based on active tab)
-    document.getElementById('addBtn').addEventListener('click', function () {
+  // -----------------------------------------------------
+  document
+    .getElementById("multiplefiltersBtn")
+    .addEventListener("click", function () {
+      const isPersonnelActive = document
+        .getElementById("personnelBtn")
+        ?.classList.contains("active");
+      const isDepartmentsActive = document
+        .getElementById("departmentsBtn")
+        ?.classList.contains("active");
 
-        if (document.getElementById('personnelBtn').classList.contains('active')) {
-            // Clear previous values
-            document.getElementById('addPersonnelFirstName').value = '';
-            document.getElementById('addPersonnelLastName').value = '';
-            document.getElementById('addPersonnelEmail').value = '';
-            // Fetch departments for dropdown
-            fetch('php/getAllDepartments.php')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('addPersonnelDepartment');
-                    select.innerHTML = ''; // Clear previous
-                    data.data.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.text = dept.name;
-                        select.appendChild(option);
-                    });
-                });
-            // Open modal
-            new bootstrap.Modal(document.getElementById('addPersonnelModal')).show();
-        }
+      if (isPersonnelActive) {
+        // === Populate Departments ===
+        fetch("php/getAllDepartments.php")
+          .then((res) => res.json())
+          .then((data) => {
+            const deptSelect = document.getElementById("all-departments");
+            if (deptSelect && Array.isArray(data.data)) {
+              deptSelect.innerHTML = ""; // Clear existing options
+              const emptyOption = document.createElement("option");
+              emptyOption.value = "";
+              emptyOption.textContent = "Select Department";
+              deptSelect.appendChild(emptyOption);
 
-        else if (document.getElementById('departmentsBtn').classList.contains('active')) {
-            document.getElementById('addDepartmentName').value = '';
-
-            // Load locations for dropdown
-
-            //Action is changed
-            fetch('php/locations.php?action=get')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('addDepartmentLocation');
-                    select.innerHTML = '';
-                    console.log(data);
-                    data.data.forEach(loc => {
-                        const option = document.createElement('option');
-                        option.value = loc.id;
-                        option.text = loc.name;
-                        select.appendChild(option);
-                    });
-                });
-
-            new bootstrap.Modal(document.getElementById('addDepartmentModal')).show();
-        }
-
-        else if (document.getElementById('locationsBtn').classList.contains('active')) {
-            // Clear previous value
-            document.getElementById('addLocationName').value = '';
-            // Open modal
-            new bootstrap.Modal(document.getElementById('addLocationModal')).show();
-        }
-
-    });
-
-    // -----------------------------------------------------
-    document.getElementById('multiplefiltersBtn').addEventListener('click', function () {
-
-        if (document.getElementById('personnelBtn')?.classList.contains('active')) {
-
-            // Fetch departments for dropdown
-            fetch('php/getAllDepartments.php')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('all-departments');
-                    if (select && Array.isArray(data.data)) {
-                        // select.innerHTML = ''; // Clear previous
-                        const emptyOption = document.createElement('option');
-                        emptyOption.value = '';
-                        emptyOption.textContent = 'Select Department';
-                        select.appendChild(emptyOption);
-                        data.data.forEach(dept => {
-                            const option = document.createElement('option');
-                            option.value = dept.name;
-                            option.textContent = dept.name;
-                            select.appendChild(option);
-                        });
-                    }
-                })
-                .catch(err => console.error('Error fetching departments:', err));
-
-            // Fetch locations for dropdown
-            fetch('php/locations.php?action=get')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('all-locations');
-                    if (select && Array.isArray(data.data)) {
-                        const emptyOption = document.createElement('option');
-                        emptyOption.value = '';
-                        emptyOption.textContent = 'Select Location';
-                        select.appendChild(emptyOption);
-                        data.data.forEach(loc => {
-                            const option = document.createElement('option');
-                            option.value = loc.name;
-                            option.textContent = loc.name;
-                            select.appendChild(option);
-                        });
-                    }
-                })
-                .catch(err => console.error('Error fetching locations:', err));
-
-            // Open modal
-            const modalEl = document.getElementById('filterForPerson');
-            if (modalEl) {
-                new bootstrap.Modal(modalEl).show();
+              data.data.forEach((dept) => {
+                const option = document.createElement("option");
+                option.value = dept.name;
+                option.textContent = dept.name;
+                deptSelect.appendChild(option);
+              });
             }
-        }
+          })
+          .catch((err) => console.error("Error fetching departments:", err));
 
+        // === Populate Locations ===
+        fetch("php/locations.php?action=get")
+          .then((res) => res.json())
+          .then((data) => {
+            const locSelect = document.getElementById("all-locations");
+            if (locSelect && Array.isArray(data.data)) {
+              locSelect.innerHTML = ""; // Clear existing options
+              const emptyOption = document.createElement("option");
+              emptyOption.value = "";
+              emptyOption.textContent = "Select Location";
+              locSelect.appendChild(emptyOption);
 
-        else if (document.getElementById('departmentsBtn').classList.contains('active')) {
+              data.data.forEach((loc) => {
+                const option = document.createElement("option");
+                option.value = loc.name;
+                option.textContent = loc.name;
+                locSelect.appendChild(option);
+              });
 
-
-            //Action is changed
-            fetch('php/locations.php?action=get')
-                .then(res => res.json())
-                .then(data => {
-                    const select = document.getElementById('all-locations-department');
-                    // select.innerHTML = '';
-                    const emptyOption = document.createElement('option');
-                    emptyOption.value = '';
-                    emptyOption.textContent = 'Select Department';
-                    select.appendChild(emptyOption);
-                    console.log(data);
-                    data.data.forEach(loc => {
-                        const option = document.createElement('option');
-                        option.value = loc.name;
-                        option.text = loc.name;
-                        select.appendChild(option);
-                    });
+              // Either/Or filter enforcement
+              document
+                .getElementById("all-departments")
+                .addEventListener("change", function () {
+                  if (this.value) {
+                    locSelect.value = "";
+                  }
                 });
 
-            new bootstrap.Modal(document.getElementById('filterForDepartment')).show();
+              locSelect.addEventListener("change", function () {
+                if (this.value) {
+                  document.getElementById("all-departments").value = "";
+                }
+              });
+            }
+          })
+          .catch((err) => console.error("Error fetching locations:", err));
+
+        // Show the personnel filter modal
+        const modalEl = document.getElementById("filterForPerson");
+        if (modalEl) {
+          new bootstrap.Modal(modalEl).show();
         }
+      } else if (isDepartmentsActive) {
+        // === Populate Locations for Department filter modal ===
+        fetch("php/locations.php?action=get")
+          .then((res) => res.json())
+          .then((data) => {
+            const select = document.getElementById("all-locations-department");
+            if (select && Array.isArray(data.data)) {
+              select.innerHTML = ""; // Clear previous options
+              const emptyOption = document.createElement("option");
+              emptyOption.value = "";
+              emptyOption.textContent = "Select Location";
+              select.appendChild(emptyOption);
 
+              data.data.forEach((loc) => {
+                const option = document.createElement("option");
+                option.value = loc.name;
+                option.text = loc.name;
+                select.appendChild(option);
+              });
+            }
+          })
+          .catch((err) => console.error("Error fetching locations:", err));
+
+        // Show department filter modal
+        new bootstrap.Modal(
+          document.getElementById("filterForDepartment")
+        ).show();
+      }
     });
-    // -----------------------------------------------------
 
+  // -----------------------------------------------------
 
-    // ============================
-    // REFRESH button
-    // ============================
-    document.getElementById('refreshBtn').addEventListener('click', () => {
-        if (currentTab === 'personnel') loadPersonnel();
-        else if (currentTab === 'departments') loadDepartments();
-        else if (currentTab === 'locations') loadLocations();
+  // ============================
+  // REFRESH button
+  // ============================
+  document.getElementById("refreshBtn").addEventListener("click", () => {
+    if (currentTab === "personnel") loadPersonnel();
+    else if (currentTab === "departments") loadDepartments();
+    else if (currentTab === "locations") loadLocations();
+  });
+
+  // ============================
+  // FILTER button
+  // ============================
+
+  document.getElementById("searchInp").addEventListener("input", function () {
+    const searchTerm = this.value.trim().toLowerCase();
+
+    // Decide which table to filter
+    let tableBody;
+    if (currentTab === "personnel") {
+      tableBody = document.getElementById("personnelTableBody");
+    } else if (currentTab === "departments") {
+      tableBody = document.getElementById("departmentTableBody");
+    } else if (currentTab === "locations") {
+      tableBody = document.getElementById("locationTableBody");
+    } else {
+      return; // No valid tab
+    }
+
+    // Loop through all rows in the selected table
+    Array.from(tableBody.getElementsByTagName("tr")).forEach((row) => {
+      // Combine all text in this row
+      const rowText = row.innerText.toLowerCase();
+
+      // Show or hide row based on match
+      if (rowText.includes(searchTerm)) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
     });
+  });
 
-    // ============================
-    // FILTER button
-    // ============================
+  document
+    .getElementById("apply_on_personal")
+    ?.addEventListener("click", () => {
+      const departmentSelect = document.getElementById("all-departments");
+      const locationSelect = document.getElementById("all-locations");
+      const department = departmentSelect?.value.trim().toLowerCase() || "";
+      const location = locationSelect?.value.trim().toLowerCase() || "";
+      if (!department && !location) {
+        window.location.reload();
+      }
+      // Decide which table to filter
+      let tableBody = null;
+      if (currentTab === "personnel") {
+        tableBody = document.getElementById("personnelTableBody");
+      } else if (currentTab === "departments") {
+        tableBody = document.getElementById("departmentTableBody");
+      } else if (currentTab === "locations") {
+        tableBody = document.getElementById("locationTableBody");
+      }
 
-    document.getElementById('searchInp').addEventListener('input', function () {
+      if (!tableBody) return; // Exit if tableBody is invalid
 
-        const searchTerm = this.value.trim().toLowerCase();
+      // Loop through all rows in the selected table
+      Array.from(tableBody.getElementsByTagName("tr")).forEach((row) => {
+        const rowText = row.innerText.toLowerCase();
 
-        // Decide which table to filter
-        let tableBody;
-        if (currentTab === 'personnel') {
-            tableBody = document.getElementById('personnelTableBody');
-        } else if (currentTab === 'departments') {
-            tableBody = document.getElementById('departmentTableBody');
-        } else if (currentTab === 'locations') {
-            tableBody = document.getElementById('locationTableBody');
+        const matchesDepartment = department && rowText.includes(department);
+        const matchesLocation = location && rowText.includes(location);
+
+        // Show row if either matches or if no filters are applied
+        if (
+          (department && location && matchesDepartment && matchesLocation) || // Both selected & both match
+          (department && !location && matchesDepartment) || // Only department selected
+          (!department && location && matchesLocation)
+        ) {
+          row.style.display = "";
         } else {
-            return; // No valid tab
+          row.style.display = "none";
         }
+      });
+      document.getElementById("cancel_personal")?.click();
+    });
 
-        // Loop through all rows in the selected table
-        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
-            // Combine all text in this row
-            const rowText = row.innerText.toLowerCase();
+  document
+    .getElementById("apply_on_department")
+    ?.addEventListener("click", () => {
+      const locationSelect = document.getElementById(
+        "all-locations-department"
+      );
+      const location = locationSelect?.value.trim().toLowerCase() || "";
 
-            // Show or hide row based on match
-            if (rowText.includes(searchTerm)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+      // Decide which table to filter
+      let tableBody = null;
+      if (currentTab === "personnel") {
+        tableBody = document.getElementById("personnelTableBody");
+      } else if (currentTab === "departments") {
+        tableBody = document.getElementById("departmentTableBody");
+      } else if (currentTab === "locations") {
+        tableBody = document.getElementById("locationTableBody");
+      }
+
+      if (!tableBody) return; // Exit if tableBody is invalid
+
+      // Loop through all rows in the selected table
+      Array.from(tableBody.getElementsByTagName("tr")).forEach((row) => {
+        const rowText = row.innerText.toLowerCase();
+        const matchesLocation = location && rowText.includes(location);
+
+        // Show row if either matches or if no filters are applied
+        if (location && matchesLocation) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+      document.getElementById("cancel_department")?.click();
+    });
+
+  // Load all personnel
+  function loadPersonnel() {
+    fetch(`php/getAll.php?nocache=${Date.now()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const tbody = document.getElementById("personnelTableBody");
+        tbody.innerHTML = "";
+
+        data.data.forEach((person) => {
+          const row = document.createElement("tr");
+
+          const nameCell = document.createElement("td");
+          nameCell.textContent = `${person.lastName}, ${person.firstName}`;
+          row.appendChild(nameCell);
+
+          const deptCell = document.createElement("td");
+          deptCell.textContent = person.department;
+          deptCell.className = "d-none d-md-table-cell";
+          row.appendChild(deptCell);
+
+          const locCell = document.createElement("td");
+          locCell.textContent = person.location;
+          locCell.className = "d-none d-md-table-cell";
+          row.appendChild(locCell);
+
+          const emailCell = document.createElement("td");
+          emailCell.textContent = person.email;
+          emailCell.className = "d-none d-md-table-cell";
+          row.appendChild(emailCell);
+
+          const actionCell = document.createElement("td");
+          actionCell.className = "text-end";
+
+          const editBtn = document.createElement("button");
+          editBtn.className = "btn btn-primary btn-sm me-2";
+          editBtn.setAttribute("data-bs-toggle", "modal");
+          editBtn.setAttribute("data-bs-target", "#editPersonnelModal");
+          editBtn.setAttribute("data-id", person.id);
+          editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className =
+            "btn btn-primary btn-sm deletePersonnelBtn deleteBtn";
+          deleteBtn.setAttribute("data-type", "personnel");
+          deleteBtn.setAttribute("data-id", person.id);
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+          actionCell.appendChild(editBtn);
+          actionCell.appendChild(deleteBtn);
+
+          row.appendChild(actionCell);
+          tbody.appendChild(row);
         });
+      })
+      .catch((err) => console.error("Error loading personnel:", err));
+  }
 
-    });
+  // Load all departments
+  function loadDepartments() {
+    fetch("php/getAllDepartments.php")
+      .then((res) => res.json())
+      .then((data) => {
+        const tbody = document.getElementById("departmentTableBody");
+        tbody.innerHTML = "";
 
-    document.getElementById('apply_on_personal')?.addEventListener('click', () => {
-        const departmentSelect = document.getElementById('all-departments');
-        const locationSelect = document.getElementById('all-locations');
-        const department = departmentSelect?.value.trim().toLowerCase() || '';
-        const location = locationSelect?.value.trim().toLowerCase() || '';
+        data.data.forEach((dept) => {
+          const row = document.createElement("tr");
 
-        // Decide which table to filter
-        let tableBody = null;
-        if (currentTab === 'personnel') {
-            tableBody = document.getElementById('personnelTableBody');
-        } else if (currentTab === 'departments') {
-            tableBody = document.getElementById('departmentTableBody');
-        } else if (currentTab === 'locations') {
-            tableBody = document.getElementById('locationTableBody');
-        }
+          const nameCell = document.createElement("td");
+          nameCell.textContent = dept.name;
+          row.appendChild(nameCell);
 
-        if (!tableBody) return; // Exit if tableBody is invalid
+          const locCell = document.createElement("td");
+          locCell.textContent = dept.location;
+          locCell.className = "d-none d-md-table-cell";
+          row.appendChild(locCell);
 
-        // Loop through all rows in the selected table
-        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
-            const rowText = row.innerText.toLowerCase();
+          const actionCell = document.createElement("td");
+          actionCell.className = "text-end";
 
-            const matchesDepartment = department && rowText.includes(department);
-            const matchesLocation = location && rowText.includes(location);
+          const editBtn = document.createElement("button");
+          editBtn.className = "btn btn-primary btn-sm me-2";
+          editBtn.setAttribute("data-bs-toggle", "modal");
+          editBtn.setAttribute("data-bs-target", "#editDepartmentModal");
+          editBtn.setAttribute("data-id", dept.id);
+          editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
 
-            // Show row if either matches or if no filters are applied
-            if ((department && location && matchesDepartment && matchesLocation) || // Both selected & both match
-                (department && !location && matchesDepartment) ||                  // Only department selected
-                (!department && location && matchesLocation)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className =
+            "btn btn-primary btn-sm deleteDepartmentBtn deleteBtn";
+          deleteBtn.setAttribute("data-type", "department");
+          deleteBtn.setAttribute("data-id", dept.id);
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+          actionCell.appendChild(editBtn);
+          actionCell.appendChild(deleteBtn);
+
+          row.appendChild(actionCell);
+          tbody.appendChild(row);
         });
-        document.getElementById('cancel_personal')?.click();
-    });
+      })
+      .catch((err) => console.error("Error loading departments:", err));
+  }
 
-    document.getElementById('apply_on_department')?.addEventListener('click', () => {
+  // Load all locations
+  function loadLocations() {
+    fetch("php/locations.php?action=get")
+      .then((res) => res.json())
+      .then((data) => {
+        const tbody = document.getElementById("locationTableBody");
+        tbody.innerHTML = "";
+        data.data.forEach((loc) => {
+          const row = document.createElement("tr");
+          const nameCell = document.createElement("td");
+          nameCell.textContent = loc.name;
 
-        const locationSelect = document.getElementById('all-locations-department');
-        const location = locationSelect?.value.trim().toLowerCase() || '';
+          const actionCell = document.createElement("td");
+          actionCell.className = "text-end";
 
-        // Decide which table to filter
-        let tableBody = null;
-        if (currentTab === 'personnel') {
-            tableBody = document.getElementById('personnelTableBody');
-        } else if (currentTab === 'departments') {
-            tableBody = document.getElementById('departmentTableBody');
-        } else if (currentTab === 'locations') {
-            tableBody = document.getElementById('locationTableBody');
-        }
+          // Edit button
+          const editBtn = document.createElement("button");
+          editBtn.className = "btn btn-primary btn-sm me-2";
+          editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+          editBtn.addEventListener("click", () => {
+            const modal = new bootstrap.Modal(
+              document.getElementById("editLocationModal")
+            );
+            document.getElementById("editLocationId").value = loc.id;
+            document.getElementById("editLocationName").value = loc.name;
+            modal.show();
+          });
 
-        if (!tableBody) return; // Exit if tableBody is invalid
+          // Delete button
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className =
+            "btn btn-primary btn-sm deleteLocationBtn deleteBtn";
+          deleteBtn.setAttribute("data-id", loc.id);
+          deleteBtn.setAttribute("data-type", "location");
+          deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
 
-        // Loop through all rows in the selected table
-        Array.from(tableBody.getElementsByTagName('tr')).forEach(row => {
-            const rowText = row.innerText.toLowerCase();
-            const matchesLocation = location && rowText.includes(location);
+          // Append buttons to actionCell
+          actionCell.appendChild(editBtn);
+          actionCell.appendChild(deleteBtn);
 
-            // Show row if either matches or if no filters are applied
-            if (location && matchesLocation) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
+          // Append cells to row
+          row.appendChild(nameCell);
+          row.appendChild(actionCell);
+
+          // Append row to tbody
+          tbody.appendChild(row);
         });
-        document.getElementById('cancel_department')?.click();
+      })
+      .catch((err) => console.error("Error loading locations:", err));
+  }
+
+  // Add department
+  document
+    .getElementById("addDepartmentForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("addDepartmentName").value;
+      const locationID = document.getElementById("addDepartmentLocation").value;
+
+      if (name.trim() === "") {
+        showAlert("Please enter department name", "Missing Field");
+        return;
+      }
+
+      fetch(
+        `php/insertDepartment.php?name=${encodeURIComponent(
+          name
+        )}&locationID=${locationID}`
+      )
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status.code === "200") {
+            showAlert("Department added successfully!", "Success");
+
+            bootstrap.Modal.getInstance(
+              document.getElementById("addDepartmentModal")
+            ).hide();
+            loadDepartments();
+          } else {
+            showAlert(
+              data.status.description || "Failed to add department",
+              "Add Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => console.error("Error adding department:", error));
     });
 
-    // Load all personnel
-    function loadPersonnel() {
-        fetch(`php/getAll.php?nocache=${Date.now()}`)  // 👈 prevent browser from caching old data
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.getElementById('personnelTableBody');
-                tbody.innerHTML = '';
-                // console.log("Cleared old rows and loading fresh data...");
-                // console.log(data.data);
-                data.data.forEach(person => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                    <td>${person.firstName}, ${person.lastName}</td>
-                    <td class="d-none d-md-table-cell">${person.department}</td>
-                    <td class="d-none d-md-table-cell">${person.location}</td>
-                    <td class="d-none d-md-table-cell">${person.email}</td>
-                    <td class="text-end">
-                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editPersonnelModal" data-id="${person.id}">
-                            <i class="fa-solid fa-pencil"></i>
-                        </button>
-                        <button class="btn btn-primary btn-sm deletePersonnelBtn" data-id="${person.id}">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </td>
-                `;
-                    tbody.appendChild(row);
-                    // console.log("Added person:", person.firstName, person.lastName);
+  document
+    .getElementById("addLocationForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = document.getElementById("addLocationName").value.trim();
 
-                });
-            })
-            .catch(err => console.error('Error loading personnel:', err));
-    }
+      if (name === "") {
+        showAlert("Please enter location name", "Missing Field", "warning");
+        return;
+      }
 
-    // Load all departments
-    function loadDepartments() {
-        fetch('php/getAllDepartments.php')
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.getElementById('departmentTableBody');
-                tbody.innerHTML = '';
-                data.data.forEach(dept => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${dept.name}</td>
-                        <td class="d-none d-md-table-cell">${dept.location}</td>
-                        <td class="text-end">
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editDepartmentModal" data-id="${dept.id}">
-                                <i class="fa-solid fa-pencil"></i>
-                            </button>
-                            <button class="btn btn-primary btn-sm deleteDepartmentBtn" data-id="${dept.id}">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            })
-            .catch(err => console.error('Error loading departments:', err));
-    }
-
-    // Load all locations
-    function loadLocations() {
-        fetch('php/locations.php?action=get')
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.getElementById('locationTableBody');
-                tbody.innerHTML = '';
-                data.data.forEach(loc => {
-                    const row = document.createElement('tr');
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = loc.name;
-
-                    const actionCell = document.createElement('td');
-                    actionCell.className = 'text-end';
-
-                    // Edit button
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'btn btn-primary btn-sm me-2';
-                    editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
-                    editBtn.addEventListener('click', () => {
-                        const modal = new bootstrap.Modal(document.getElementById('editLocationModal'));
-                        document.getElementById('editLocationId').value = loc.id;
-                        document.getElementById('editLocationName').value = loc.name;
-                        modal.show();
-                    });
-
-                    // Delete button
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn btn-primary btn-sm deleteLocationBtn';
-                    deleteBtn.setAttribute('data-id', loc.id);
-                    deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-
-                    // Append buttons to actionCell
-                    actionCell.appendChild(editBtn);
-                    actionCell.appendChild(deleteBtn);
-
-                    // Append cells to row
-                    row.appendChild(nameCell);
-                    row.appendChild(actionCell);
-
-                    // Append row to tbody
-                    tbody.appendChild(row);
-                });
-            })
-            .catch(err => console.error('Error loading locations:', err));
-    }
-
-    // DELETE department
-    document.addEventListener('click', event => {
-        const btn = event.target.closest('.deleteDepartmentBtn');
-        if (btn) {
-            const id = btn.getAttribute('data-id');
-            if (confirm('Are you sure you want to delete this department?')) {
-                fetch(`php/deleteDepartmentByID.php?id=${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status.code === "200") {
-                            alert('Department deleted');
-                            loadDepartments();
-                        } else {
-                            alert(data.status.description || 'Unable to delete department');
-                        }
-                    });
-            }
-        }
+      fetch(`php/locations.php?action=add&name=${encodeURIComponent(name)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === "success") {
+            showAlert("Location added successfully!", "Success");
+            loadLocations();
+            document.getElementById("addLocationName").value = "";
+            bootstrap.Modal.getInstance(
+              document.getElementById("addLocationModal")
+            ).hide();
+          } else {
+            showAlert(
+              data.status.description || "Unable to add location",
+              "Add Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => console.error("Error adding location:", error));
     });
 
+  // SAVE Personnel Changes
+  document
+    .getElementById("editPersonnelModal")
+    .addEventListener("show.bs.modal", function (event) {
+      const button = event.relatedTarget;
+      const personId = button.getAttribute("data-id");
 
-    // DELETE location
-    document.addEventListener('click', event => {
-        const btn = event.target.closest('.deleteLocationBtn');
-        if (btn) {
-            const id = btn.getAttribute('data-id');
-            if (confirm('Are you sure you want to delete this location?')) {
-                fetch(`php/deleteLocation.php?id=${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status.code === "200") {
-                            alert('Location deleted');
-                            loadLocations();
-                        } else {
-                            alert(data.status.description || 'Unable to delete location');
-                        }
-                    });
-            }
-        }
+      // Fetch personnel details
+      fetch(`php/getPersonnelByID.php?id=${personId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          const person = data.data.personnel[0];
+
+          document.getElementById("editPersonnelId").value = person.id;
+          document.getElementById("editPersonnelFirstName").value =
+            person.firstName;
+          document.getElementById("editPersonnelLastName").value =
+            person.lastName;
+          document.getElementById("editPersonnelEmail").value = person.email;
+
+          // Load and populate departments
+          return fetch("php/getAllDepartments.php")
+            .then((res) => res.json())
+            .then((deptData) => {
+              const select = document.getElementById("editPersonnelDepartment");
+              select.innerHTML = ""; // Clear previous options
+
+              deptData.data.forEach((dept) => {
+                const option = document.createElement("option");
+                option.value = dept.id;
+                option.text = dept.name;
+                if (dept.id == person.departmentID) {
+                  option.selected = true;
+                }
+                select.appendChild(option);
+              });
+            });
+        })
+        .catch((error) =>
+          console.error("Error loading personnel or departments:", error)
+        );
     });
-    // Add department 
-    document.getElementById('saveNewDepartmentBtn').addEventListener('click', function () {
-        const name = document.getElementById('addDepartmentName').value;
-        const locationID = document.getElementById('addDepartmentLocation').value;
 
-        if (name.trim() === '') {
-            alert('Please enter department name');
+  // SAVE button click
+  document
+    .getElementById("editPersonnelForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault(); // Prevent default form submission behavior
+
+      const id = document.getElementById("editPersonnelId").value;
+      const firstName = document.getElementById("editPersonnelFirstName").value;
+      const lastName = document.getElementById("editPersonnelLastName").value;
+      const email = document.getElementById("editPersonnelEmail").value;
+      const departmentId = document.getElementById(
+        "editPersonnelDepartment"
+      ).value;
+
+      fetch("php/updatePersonnel.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          firstName,
+          lastName,
+          email,
+          departmentID: departmentId,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status.code === "200") {
+            showAlert("Personnel updated successfully!", "Success");
+            document.getElementById("searchInp").value = "";
+
+            loadPersonnel();
+            const modal = bootstrap.Modal.getInstance(
+              document.getElementById("editPersonnelModal")
+            );
+            modal.hide();
+          } else {
+            showAlert(
+              data.status.description || "Unable to update personnel",
+              "Update Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => {
+          console.error("Error updating personnel:", error);
+        });
+    });
+
+  // RESET form and clear select on close
+  document
+    .getElementById("editPersonnelModal")
+    .addEventListener("hidden.bs.modal", function () {
+      document.getElementById("editPersonnelForm").reset();
+      document.getElementById("editPersonnelDepartment").innerHTML = "";
+    });
+
+  // ADD PERSONNEL
+  document
+    .getElementById("addPersonnelForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const firstName = document
+        .getElementById("addPersonnelFirstName")
+        .value.trim();
+      const lastName = document
+        .getElementById("addPersonnelLastName")
+        .value.trim();
+      const email = document.getElementById("addPersonnelEmail").value.trim();
+      const departmentID = document.getElementById(
+        "addPersonnelDepartment"
+      ).value;
+
+      if (!firstName || !lastName || !email || !departmentID) {
+        showAlert(
+          "Please fill in all fields.",
+          "Missing Information",
+          "warning"
+        );
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("firstName", firstName);
+      formData.append("lastName", lastName);
+      formData.append("email", email);
+      formData.append("departmentID", departmentID);
+
+      fetch("php/insertPersonnel.php", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status.code === "200") {
+            showAlert("Personnel added successfully!", "Success");
+            loadPersonnel();
+            bootstrap.Modal.getInstance(
+              document.getElementById("addPersonnelModal")
+            ).hide();
+          } else {
+            showAlert(
+              data.status.description || "Unable to add personnel.",
+              "Add Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => console.error("Error adding personnel:", error));
+    });
+
+  // RESET Add Personnel form on modal close
+  document
+    .getElementById("addPersonnelModal")
+    .addEventListener("hidden.bs.modal", function () {
+      document.getElementById("addPersonnelForm").reset();
+
+      // Optional: clear dynamically loaded department dropdown if needed
+      document.getElementById("addPersonnelDepartment").innerHTML = "";
+    });
+
+  // SAVE Department Changes
+  document
+    .getElementById("editDepartmentForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const id = document.getElementById("editDepartmentId").value;
+      const name = document.getElementById("editDepartmentName").value;
+      const locationId = document.getElementById(
+        "editDepartmentLocation"
+      ).value;
+
+      fetch("php/updateDepartment.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name, locationID: locationId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status.code === "200") {
+            document.getElementById("searchInp").value = "";
+
+            showAlert("Department updated successfully!", "Success");
+            loadDepartments();
+            bootstrap.Modal.getInstance(
+              document.getElementById("editDepartmentModal")
+            ).hide();
+          } else {
+            showAlert(
+              data.status.description || "Unable to update department",
+              "Update Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => console.error("Error updating department:", error));
+    });
+
+  // RESET form and select on modal close
+  document
+    .getElementById("editDepartmentModal")
+    .addEventListener("hidden.bs.modal", function () {
+      const form = document.getElementById("editDepartmentForm");
+      form.reset();
+
+      // Clear select options so next open gets fresh data
+      const select = document.getElementById("editDepartmentLocation");
+      select.innerHTML = "";
+    });
+
+  // SAVE Location Changes
+  document
+    .getElementById("editLocationForm")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+      const id = document.getElementById("editLocationId").value;
+      const name = document.getElementById("editLocationName").value;
+
+      fetch("php/updateLocationByID.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, name }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status.code === "200") {
+            document.getElementById("searchInp").value = "";
+
+            showAlert("Location updated successfully!", "Success");
+
+            loadLocations();
+            bootstrap.Modal.getInstance(
+              document.getElementById("editLocationModal")
+            ).hide();
+          } else {
+            showAlert(
+              data.status.description || "Unable to update location",
+              "Update Failed",
+              "error"
+            );
+          }
+        })
+        .catch((error) => console.error("Error updating location:", error));
+    });
+
+  // RESET Location form on modal close
+  document
+    .getElementById("editLocationModal")
+    .addEventListener("hidden.bs.modal", function () {
+      const form = document.getElementById("editLocationForm");
+      if (form) {
+        form.reset();
+      } else {
+        // If no <form>, manually clear inputs
+        document.getElementById("editLocationId").value = "";
+        document.getElementById("editLocationName").value = "";
+      }
+    });
+
+  // DELETE Action
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".deleteBtn");
+    if (!btn) return;
+
+    const id = btn.getAttribute("data-id");
+    const type = btn.getAttribute("data-type");
+
+    // Set hidden inputs
+    deleteIdInput.value = id;
+    deleteTypeInput.value = type;
+    // Dependency check only for department or location
+    if (type === "department" || type === "location") {
+      fetch(`php/checkDependencies.php?id=${id}&type=${type}`)
+        .then((res) => res.json())
+        .then((depData) => {
+          if (depData.hasDependencies) {
+            // Fetch the entry name to use in the dependency warning
+            fetch(`php/getEntryName.php?id=${id}&type=${type}`)
+              .then((res) => res.json())
+              .then((data) => {
+                const entryName = data.name || "this entry";
+                let relatedLabel = "";
+
+                if (type === "department")
+                  relatedLabel = `${depData.count} employee(s)`;
+                else if (type === "location")
+                  relatedLabel = `${depData.count} department(s)`;
+
+                const dependncyMessage = document.getElementById(
+                  "DependencyCheckMessage"
+                );
+                dependncyMessage.innerText = `You cannot remove the entry for "${entryName}" because it has ${relatedLabel} assigned to it.`;
+
+                const DependencyCheckModal = document.getElementById(
+                  "DependencyCheckModal"
+                );
+                new bootstrap.Modal(DependencyCheckModal).show();
+              })
+              .catch(() => {
+                showAlert(
+                  "This entry has dependencies and cannot be deleted.",
+                  "Delete Failed",
+                  "warning"
+                );
+              });
+
             return;
-        }
+          }
 
-        fetch(`php/insertDepartment.php?name=${encodeURIComponent(name)}&locationID=${locationID}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status.code === "200") {
-                    alert('Department added successfully');
-                    // Close modal
-                    const addDepartmentModal = bootstrap.Modal.getInstance(document.getElementById('addDepartmentModal'));
-                    addDepartmentModal.hide();
-                    // Refresh table
-                    loadDepartments();
-                } else {
-                    alert(data.status.description || 'Failed to add department');
-                }
-            })
-            .catch(error => console.error('Error adding department:', error));
-    });
-    // ADD location
-    document.getElementById('saveNewLocationBtn').addEventListener('click', () => {
-        const name = document.getElementById('addLocationName').value.trim();
+          // No dependencies — continue to fetch name and show modal
+          fetch(`php/getEntryName.php?id=${id}&type=${type}`)
+            .then((res) => res.json())
+            .then((data) => {
+              let label = type;
+              if (type === "personnel") label = "employee";
+              if (type === "department") label = "department";
+              if (type === "location") label = "location";
 
-        if (name === '') {
-            alert('Please enter location name');
-            return;
-        }
-        // action is changed
-        fetch(`php/locations.php?action=add&name=${encodeURIComponent(name)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === "success") {
-                    alert('Location added');
-                    loadLocations(); // Refresh location list
-                    // Clear input
-                    document.getElementById('addLocationName').value = '';
-                    // Close modal
-                    bootstrap.Modal.getInstance(document.getElementById('addLocationModal')).hide();
-                } else {
-                    alert(data.status.description || 'Unable to add location');
-                }
+              const name = data.name || "this entry";
+              deleteMessage.innerText = `Are you sure you want to delete "${name}" ${label}?`;
+              confirmModal.show();
             })
-            .catch(error => {
-                console.error('Error adding location:', error);
+            .catch(() => {
+              deleteMessage.innerText =
+                "Are you sure you want to delete this entry?";
+              confirmModal.show();
             });
-    });
-    // ADD personnel
-
-
-    // DELETE personnel
-    document.addEventListener('click', event => {
-        const btn = event.target.closest('.deletePersonnelBtn');
-        if (btn) {
-            const id = btn.getAttribute('data-id');
-            if (confirm('Are you sure you want to delete this employee?')) {
-                fetch(`php/deletePersonnelByID.php?id=${id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.status.code === "200") {
-                            alert('Employee deleted');
-                            loadPersonnel();
-                        } else {
-                            alert(data.status.description || 'Unable to delete employee');
-                        }
-                    });
-            }
-        }
-    });
-
-
-    // SAVE Personnel Changes
-    document.getElementById('savePersonnelChangesBtn').addEventListener('click', function () {
-        const id = document.getElementById('editPersonnelId').value;
-        const firstName = document.getElementById('editPersonnelFirstName').value;
-        const lastName = document.getElementById('editPersonnelLastName').value;
-        const email = document.getElementById('editPersonnelEmail').value;
-        const departmentId = document.getElementById('editPersonnelDepartment').value;
-
-        fetch('php/updatePersonnel.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: id,
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
-                departmentID: departmentId
-            })
         })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status.code === "200") {
-                    alert('Personnel updated successfully');
-                    loadPersonnel();
-                    // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editPersonnelModal'));
-                    modal.hide();
-                } else {
-                    alert(data.status.description || 'Unable to update personnel');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating personnel:', error);
-            });
-    });
-    // ADD PERSONNEL
-    document.getElementById('saveNewPersonnelBtn').addEventListener('click', function () {
-        const firstName = document.getElementById('addPersonnelFirstName').value.trim();
-        const lastName = document.getElementById('addPersonnelLastName').value.trim();
-        const email = document.getElementById('addPersonnelEmail').value.trim();
-        const departmentID = document.getElementById('addPersonnelDepartment').value;
+        .catch((err) => {
+          console.error("Error checking dependencies:", err);
+          showAlert("An error occurred. Please try again.", "Error", "error");
+        });
+    } else {
+      // For personnel (no dependency check needed)
+      fetch(`php/getEntryName.php?id=${id}&type=${type}`)
+        .then((res) => res.json())
+        .then((data) => {
+          let label = type;
+          if (type === "personnel") label = "employee";
 
-        // Basic validation
-        if (firstName === '' || lastName === '' || email === '' || departmentID === '') {
-            alert('Please fill in all fields.');
-            return;
+          const name = data.name || "this entry";
+          deleteMessage.innerText = `Are you sure you want to delete "${name}" ${label}?`;
+          confirmModal.show();
+        })
+        .catch(() => {
+          deleteMessage.innerText =
+            "Are you sure you want to delete this entry?";
+          confirmModal.show();
+        });
+    }
+  });
+
+  // Submit handler for form
+  deleteForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = deleteIdInput.value;
+    const type = deleteTypeInput.value;
+    confirmModal.hide();
+    // Type-to-URL map
+    const deleteRoutes = {
+      personnel: {
+        url: (id) => `php/deletePersonnelByID.php?id=${id}`,
+        reload: typeof loadPersonnel === "function" ? loadPersonnel : null,
+      },
+      department: {
+        url: (id) => `php/deleteDepartmentByID.php?id=${id}`,
+        reload: typeof loadDepartments === "function" ? loadDepartments : null,
+      },
+      location: {
+        url: (id) => `php/deleteLocation.php?id=${id}`,
+        reload: typeof loadLocations === "function" ? loadLocations : null,
+      },
+    };
+
+    const config = deleteRoutes[type];
+    if (!config) return showAlert("Unknown delete type", "Error");
+
+    fetch(config.url(id))
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status.code === "200") {
+          document.getElementById("searchInp").value = "";
+
+          showAlert(
+            `${
+              type.charAt(0).toUpperCase() + type.slice(1)
+            } deleted successfully!`,
+            "Deleted"
+          );
+          config.reload?.();
+        } else {
+          showAlert(
+            data.status.description || "Unable to delete entry",
+            "Error"
+          );
         }
+      });
+  });
+  //end DElete Action
+}); // DOM ends
 
-        // Prepare POST data
-        const formData = new FormData();
-        formData.append('firstName', firstName);
-        formData.append('lastName', lastName);
-        formData.append('email', email);
-        formData.append('departmentID', departmentID);
-
-        // Send POST request
-        fetch('php/insertPersonnel.php', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status.code === "200") {
-                    alert('Personnel added successfully!');
-                    // Close modal
-                    const addModal = bootstrap.Modal.getInstance(document.getElementById('addPersonnelModal'));
-                    addModal.hide();
-                    // Reset form
-                    document.getElementById('addPersonnelFirstName').value = '';
-                    document.getElementById('addPersonnelLastName').value = '';
-                    document.getElementById('addPersonnelEmail').value = '';
-                    document.getElementById('addPersonnelDepartment').value = '';
-                    // Reload personnel list
-                    loadPersonnel();
-                } else {
-                    alert(data.status.description || 'Unable to add personnel.');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding personnel:', error);
-            });
-    });
-    // SAVE Department Changes
-    document.getElementById('saveDepartmentChangesBtn').addEventListener('click', function () {
-        const id = document.getElementById('editDepartmentId').value;
-        const name = document.getElementById('editDepartmentName').value;
-        const locationId = document.getElementById('editDepartmentLocation').value;
-
-        fetch('php/updateDepartment.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: id,
-                name: name,
-                locationID: locationId
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status.code === "200") {
-                    alert('Department updated successfully');
-                    loadDepartments();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editDepartmentModal'));
-                    modal.hide();
-                } else {
-                    alert(data.status.description || 'Unable to update department');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating department:', error);
-            });
-    });
-    // SAVE Location Changes
-    document.getElementById('saveLocationChangesBtn').addEventListener('click', function () {
-        const id = document.getElementById('editLocationId').value;
-        const name = document.getElementById('editLocationName').value;
-        console.log(id);
-        console.log(name);
-
-        fetch('php/updateLocationByID.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: id,
-                name: name
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status.code === "200") {
-                    alert('Location updated successfully');
-                    loadLocations();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editLocationModal'));
-                    modal.hide();
-                } else {
-                    alert(data.status.description || 'Unable to update location');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating location:', error);
-            });
-    });
-
-});// DOM ends 
 // ===============================
 // Show Personnel Modal
 // ===============================
-document.getElementById('editPersonnelModal').addEventListener('show.bs.modal', function (event) {
+document
+  .getElementById("editPersonnelModal")
+  .addEventListener("show.bs.modal", function (event) {
     const button = event.relatedTarget;
-    const personId = button.getAttribute('data-id');
-
+    const personId = button.getAttribute("data-id");
     // First fetch personnel data
-
     //data was not being fetched
     fetch(`php/getPersonnelByID.php?id=${personId}`)
-        .then(response => response.json())
-        .then(data => {
-            const person = data.data.personnel[0];
+      .then((response) => response.json())
+      .then((data) => {
+        const person = data.data.personnel[0];
 
+        // Populate input fields
+        document.getElementById("editPersonnelId").value = person.id;
+        document.getElementById("editPersonnelFirstName").value =
+          person.firstName;
+        document.getElementById("editPersonnelLastName").value =
+          person.lastName;
+        document.getElementById("editPersonnelEmail").value = person.email;
 
-            console.log(person);
-            // Populate input fields
-            document.getElementById('editPersonnelId').value = person.id;
-            document.getElementById('editPersonnelFirstName').value = person.firstName;
-            document.getElementById('editPersonnelLastName').value = person.lastName;
-            document.getElementById('editPersonnelEmail').value = person.email;
+        // Now load departments and select the correct one
+        return fetch("php/getAllDepartments.php")
+          .then((res) => res.json())
+          .then((deptData) => {
+            const select = document.getElementById("editPersonnelDepartment");
+            select.innerHTML = ""; // Clear previous
 
-            // Now load departments and select the correct one
-            return fetch('php/getAllDepartments.php')
-                .then(res => res.json())
-                .then(deptData => {
-                    const select = document.getElementById('editPersonnelDepartment');
-                    select.innerHTML = ''; // Clear previous
+            deptData.data.forEach((dept) => {
+              const option = document.createElement("option");
+              option.value = dept.id;
+              option.text = dept.name;
 
-                    deptData.data.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.id;
-                        option.text = dept.name;
+              // Preselect the current department
+              if (dept.id == person.departmentID) {
+                option.selected = true;
+              }
 
-                        // Preselect the current department
-                        if (dept.id == person.departmentID) {
-                            option.selected = true;
-                        }
-
-                        select.appendChild(option);
-                    });
-                });
-        })
-        .catch(error => console.error('Error loading personnel or departments:', error));
-});
-
-
-
-
+              select.appendChild(option);
+            });
+          });
+      })
+      .catch((error) =>
+        console.error("Error loading personnel or departments:", error)
+      );
+  });
 
 // Show Department Modal
-
-
-document.getElementById('editDepartmentModal').addEventListener('show.bs.modal', function (event) {
+document
+  .getElementById("editDepartmentModal")
+  .addEventListener("show.bs.modal", function (event) {
     const button = event.relatedTarget;
-    const deptId = button.getAttribute('data-id');
+    const deptId = button.getAttribute("data-id");
     // Added additional code for selectbox
     fetch(`php/getDepartmentByID.php?id=${deptId}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-            document.getElementById('editDepartmentId').value = data.data[0].id;
-            document.getElementById('editDepartmentName').value = data.data[0].name;
-            const select = document.getElementById('editDepartmentLocation');
+      .then((response) => response.json())
+      .then((data) => {
+        document.getElementById("editDepartmentId").value = data.data[0].id;
+        document.getElementById("editDepartmentName").value = data.data[0].name;
+        const select = document.getElementById("editDepartmentLocation");
 
-            data.locationData.forEach(loc => {
-                const option = document.createElement('option');
-                option.value = loc.id;
-                option.textContent = loc.name;
-                if (data.data[0].locationID === loc.id) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-        })
-        .catch(error => console.error('Error loading department data:', error));
-});
+        data.locationData.forEach((loc) => {
+          const option = document.createElement("option");
+          option.value = loc.id;
+          option.textContent = loc.name;
+          if (data.data[0].locationID === loc.id) {
+            option.selected = true;
+          }
+          select.appendChild(option);
+        });
+      })
+      .catch((error) => console.error("Error loading department data:", error));
+  });
 
-
-// Load fresh data 
-document.getElementById('editLocationModal').addEventListener('show.bs.modal', function (event) {
+// Load fresh data
+document
+  .getElementById("editLocationModal")
+  .addEventListener("show.bs.modal", function (event) {
     const button = event.relatedTarget;
-    const locId = button.getAttribute('data-id');
+    const locId = button.getAttribute("data-id");
 
     // First CLEAR field to avoid "old value" problem
-    document.getElementById('editLocationId').value = '';
-    document.getElementById('editLocationName').value = '';
+    document.getElementById("editLocationId").value = "";
+    document.getElementById("editLocationName").value = "";
 
     // Now load data
     fetch(`php/getLocationByID.php?id=${locId}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('editLocationId').value = data.data.id;
-            document.getElementById('editLocationName').value = data.data.name;
-        })
-        .catch(error => console.error('Error loading location data:', error));
-});
+      .then((response) => response.json())
+      .then((data) => {
+        document.getElementById("editLocationId").value = data.data.id;
+        document.getElementById("editLocationName").value = data.data.name;
+      })
+      .catch((error) => console.error("Error loading location data:", error));
+  });
 
+// Reset Add Department form
+document
+  .getElementById("addDepartmentModal")
+  ?.addEventListener("hidden.bs.modal", function () {
+    document.getElementById("addDepartmentForm").reset();
+    document.getElementById("addDepartmentLocation").innerHTML = "";
+  });
 
+// Reset Add Location form
+document
+  .getElementById("addLocationModal")
+  ?.addEventListener("hidden.bs.modal", function () {
+    document.getElementById("addLocationForm").reset();
+  });
+function showAlert(message, title = "Alert") {
+  document.getElementById("customAlertTitle").textContent = title;
+  document.getElementById("customAlertMessage").textContent = message;
+  const modal = new bootstrap.Modal(
+    document.getElementById("customAlertModal")
+  );
+  modal.show();
+}
