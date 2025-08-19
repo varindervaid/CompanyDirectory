@@ -125,18 +125,22 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((data) => {
             const deptSelect = document.getElementById("all-departments");
             if (deptSelect && Array.isArray(data.data)) {
+              const fragment = document.createDocumentFragment();
               deptSelect.innerHTML = ""; // Clear existing options
+              
               const emptyOption = document.createElement("option");
               emptyOption.value = "";
               emptyOption.textContent = "Select Department";
-              deptSelect.appendChild(emptyOption);
+              fragment.appendChild(emptyOption);
 
               data.data.forEach((dept) => {
                 const option = document.createElement("option");
                 option.value = dept.name;
                 option.textContent = dept.name;
-                deptSelect.appendChild(option);
+                fragment.appendChild(option);
               });
+              
+              deptSelect.appendChild(fragment);
             }
           })
           .catch((err) => console.error("Error fetching departments:", err));
@@ -147,18 +151,22 @@ document.addEventListener("DOMContentLoaded", function () {
           .then((data) => {
             const locSelect = document.getElementById("all-locations");
             if (locSelect && Array.isArray(data.data)) {
+              const fragment = document.createDocumentFragment();
               locSelect.innerHTML = ""; // Clear existing options
+              
               const emptyOption = document.createElement("option");
               emptyOption.value = "";
               emptyOption.textContent = "Select Location";
-              locSelect.appendChild(emptyOption);
+              fragment.appendChild(emptyOption);
 
               data.data.forEach((loc) => {
                 const option = document.createElement("option");
                 option.value = loc.name;
                 option.textContent = loc.name;
-                locSelect.appendChild(option);
+                fragment.appendChild(option);
               });
+              
+              locSelect.appendChild(fragment);
 
               // Either/Or filter enforcement
               document
@@ -341,6 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.json())
       .then((data) => {
         const tbody = document.getElementById("personnelTableBody");
+        const fragment = document.createDocumentFragment();
         tbody.innerHTML = "";
 
         data.data.forEach((person) => {
@@ -386,8 +395,10 @@ document.addEventListener("DOMContentLoaded", function () {
           actionCell.appendChild(deleteBtn);
 
           row.appendChild(actionCell);
-          tbody.appendChild(row);
+          fragment.appendChild(row);
         });
+        
+        tbody.appendChild(fragment);
       })
       .catch((err) => console.error("Error loading personnel:", err));
   }
@@ -398,6 +409,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.json())
       .then((data) => {
         const tbody = document.getElementById("departmentTableBody");
+        const fragment = document.createDocumentFragment();
         tbody.innerHTML = "";
 
         data.data.forEach((dept) => {
@@ -433,8 +445,10 @@ document.addEventListener("DOMContentLoaded", function () {
           actionCell.appendChild(deleteBtn);
 
           row.appendChild(actionCell);
-          tbody.appendChild(row);
+          fragment.appendChild(row);
         });
+        
+        tbody.appendChild(fragment);
       })
       .catch((err) => console.error("Error loading departments:", err));
   }
@@ -445,7 +459,9 @@ document.addEventListener("DOMContentLoaded", function () {
       .then((res) => res.json())
       .then((data) => {
         const tbody = document.getElementById("locationTableBody");
+        const fragment = document.createDocumentFragment();
         tbody.innerHTML = "";
+        
         data.data.forEach((loc) => {
           const row = document.createElement("tr");
           const nameCell = document.createElement("td");
@@ -483,9 +499,12 @@ document.addEventListener("DOMContentLoaded", function () {
           row.appendChild(nameCell);
           row.appendChild(actionCell);
 
-          // Append row to tbody
-          tbody.appendChild(row);
+          // Append row to fragment
+          fragment.appendChild(row);
         });
+        
+        // Append fragment to tbody
+        tbody.appendChild(fragment);
       })
       .catch((err) => console.error("Error loading locations:", err));
   }

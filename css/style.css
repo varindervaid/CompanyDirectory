@@ -1,4 +1,3 @@
-/* We didn't have a design reference, so I made changes based on the provided CodePen. */
 /* Reset & Base */
 html,
 body {
@@ -28,6 +27,57 @@ section {
   color: white;
   padding: 10px 20px 0px 20px;
   z-index: 1000;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+}
+
+.modal-dialog {
+  margin: 1.75rem auto;
+  max-width: 500px;
+}
+
+.modal.show {
+  display: block;
+}
+
+/* Modal Vertical Centering */
+.modal-dialog {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 3.5rem);
+}
+
+/* Modal Header Styles */
+.modal-header {
+  background-color: var(--bs-primary);
+  color: white;
+  border-bottom: none;
+}
+
+.modal-header .btn-close {
+  color: white;
+  opacity: 1;
+  filter: brightness(0) invert(1);
+}
+
+/* Modal Shadow Effect */
+.modal-content {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Modal Footer Alignment */
+.modal-footer {
+    padding: 1rem 0;
+    margin-top: 15px;
+    /* padding-bottom: 0px; */
+}
+
+/* Remove Modal Backdrop */
+.modal-backdrop {
+  display: none;
 }
 
 /* Ensure buttons and tabs match header styling */
