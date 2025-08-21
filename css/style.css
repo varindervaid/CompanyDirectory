@@ -34,11 +34,6 @@ section {
   display: none;
 }
 
-.modal-dialog {
-  margin: 1.75rem auto;
-  max-width: 500px;
-}
-
 .modal.show {
   display: block;
 }
@@ -69,12 +64,6 @@ section {
 }
 
 /* Modal Footer Alignment */
-.modal-footer {
-    padding: 1rem 0;
-    margin-top: 15px;
-    /* padding-bottom: 0px; */
-}
-
 /* Remove Modal Backdrop */
 .modal-backdrop {
   display: none;
@@ -153,4 +142,17 @@ footer {
 }
 .myBtn:hover {
   background-color: #004b9a; /* Slightly darker */
+}
+
+@media (min-width: 576px) {
+    .modal-sm {
+        --bs-modal-width: 300px;
+    }
+}
+@media (min-width: 576px) {
+    .modal-dialog {
+        max-width: var(--bs-modal-width);
+        margin-right: auto;
+        margin-left: auto;
+    }
 }
