@@ -863,17 +863,18 @@ document.addEventListener("DOMContentLoaded", function () {
               .then((res) => res.json())
               .then((data) => {
                 const entryName = data.name || "this entry";
+                const count = depData?.count || 0;
                 let relatedLabel = "";
 
-                if (type === "department")
-                  relatedLabel = `${depData.count} employee(s)`;
-                else if (type === "location")
-                  relatedLabel = `${depData.count} department(s)`;
+                if (type === "department") {
+                  relatedLabel = `<b>${count}</b> employee${count === 1 ? "" : "s"}`;
+                } else if (type === "location") {
+                  relatedLabel = `<b>${count}</b> department${count === 1 ? "" : "s"}`;
+                }
 
-                const dependncyMessage = document.getElementById(
-                  "DependencyCheckMessage"
-                );
-                dependncyMessage.innerText = `You cannot remove the entry for "${entryName}" because it has ${relatedLabel} assigned to it.`;
+                const dependncyMessage = document.getElementById("DependencyCheckMessage");
+                dependncyMessage.innerHTML = `You cannot delete <b>${entryName}</b> as it is used for ${relatedLabel}.`;
+
 
                 const DependencyCheckModal = document.getElementById(
                   "DependencyCheckModal"
@@ -901,7 +902,7 @@ document.addEventListener("DOMContentLoaded", function () {
               if (type === "location") label = "location";
 
               const name = data.name || "this entry";
-              deleteMessage.innerText = `Are you sure you want to delete "${name}" ${label}?`;
+              deleteMessage.innerHTML = `Are you sure you want to delete <b>${name}</b> ${label}?`;
               confirmModal.show();
             })
             .catch(() => {
@@ -923,7 +924,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (type === "personnel") label = "employee";
 
           const name = data.name || "this entry";
-          deleteMessage.innerText = `Are you sure you want to delete "${name}" ${label}?`;
+          deleteMessage.innerHTML = `Are you sure you want to delete ${label} <b>${name}</b>?`;
           confirmModal.show();
         })
         .catch(() => {
